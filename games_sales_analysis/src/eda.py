@@ -1,3 +1,5 @@
+from typing import Any, Union
+
 import pandas as pd
 import numpy as np
 import os
@@ -5,7 +7,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from sklearn.linear_model import LinearRegression
-from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import r2_score, mean_squared_error, classification_report
 from sklearn.model_selection import train_test_split
 
 
@@ -65,13 +68,17 @@ def plot_residual_NA_Sales(genre_sales):
     plt.title('Residual plot of NA_Sales vs Global_sales')
     plt.ylabel('Residuals')
     plt.show()
+
 # </editor-fold>
 
-# <editor-fold desc="Data IO and df creation">
+# <editor-fold desc="Data IO and df creation"
+
+
 path = os.path.join("..", "data", "vgsales.csv")
 df = pd.read_csv(path)
 print(df.shape)
 df.dropna(axis=0, how='any', inplace=True)
+df.drop(df[df['Year'] > 2016].index, inplace=True)
 print(df.shape)
 sales_cols = ['Global_Sales', 'NA_Sales', 'EU_Sales', 'JP_Sales', 'Other_Sales']
 index_cols = ['Year', 'Genre']
@@ -85,29 +92,58 @@ genre_sales = pd.pivot_table(data=df,
                              fill_value=0)
 genre_sales.rename(columns={'Rank': 'Count'}, inplace=True)
 
+
 genre_sales_per_year_comparison = genre_sales.unstack(0)
 genre_sales_history = genre_sales.unstack(-1)
+
+
+def get_most_popular_genre(year_row):
+    genre_global_sales_for_year = year_row.loc['Global_Sales']
+    most_popular_genre = genre_global_sales_for_year.idxmax()
+    return most_popular_genre
+
+
+genre_sales_history['Most_Popular_Genre'] = genre_sales_history.apply(func=get_most_popular_genre, axis=1)
+# </editor-fold>
+
+# <editor-fold desc="Logistic regression">
+clf_attr = genre_sales_history[['NA_Sales', 'Count']]
+clf_target = genre_sales_history['Most_Popular_Genre']
+x_train, x_test, y_train, y_test = train_test_split(clf_attr, clf_target, test_size=.3, random_state=0)
+
+clf = LogisticRegression(random_state=0, max_iter=120).fit(x_train, y_train)
+pred = clf.predict(x_test)
+results = pd.DataFrame({'True': y_test, 'Predicted': pred})
+print('----- Logistic Regression results -----\n')
+print(results)
+print(40 * '-')
+score = clf.score(x_test, y_test)
+print(f'Score : {score}')
 # </editor-fold>
 
 # <editor-fold desc="Linear regression">
-attributes = genre_sales[['NA_Sales', 'EU_Sales', 'Count']]
-target = genre_sales['Global_Sales']
+normalized_genre_sales = (genre_sales-genre_sales.mean())/genre_sales.std()
+attributes = normalized_genre_sales[['NA_Sales', 'Count']]
+target = normalized_genre_sales['Global_Sales']
 
 xtrain, xtest, ytrain, ytest=train_test_split(attributes, target, test_size=.3, random_state=1)
 lr_model = LinearRegression()
 lr_model.fit(xtrain, ytrain)
 ypred=lr_model.predict(xtest)
-n = len(xtest)
-p = xtest.shape[1]
-r2_value = r2_score(ytest, ypred)
-
 result_df = pd.DataFrame({'Test': ytest, 'Predict': ypred})
 
+r2_value = r2_score(ytest, ypred)
+n = len(xtest)
+p = xtest.shape[1]
+
 adjusted_r2_score = 1 - (((1-r2_value)*(n-1)) / (n-p-1))
-print("r2_score for Linear Reg model : ", r2_score(ytest, ypred))
+
+print("r2_score for Linear Reg model : ", r2_value)
 print("adjusted_r2_score Value       : ", adjusted_r2_score)
 print("MSE for Linear Regression     : ", mean_squared_error(ytest, ypred))
+
 # </editor-fold>
+
 
 plot_genre_sales_comparison_for_year(genre_sales_per_year_comparison, year=2014)
 plot_genre_sales_history(genre_sales_history, 'Sports')
@@ -115,7 +151,6 @@ plot_genre_sales_to_count_comparison(genre_sales)
 plot_sales_correlation(df[sales_cols])
 plot_sales_rsquared(genre_sales)
 plot_residual_NA_Sales(genre_sales)
-
 
 
 
