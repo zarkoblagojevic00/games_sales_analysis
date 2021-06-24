@@ -1,4 +1,4 @@
-from typing import Any, Union
+from collections import Counter
 
 import pandas as pd
 import numpy as np
@@ -6,9 +6,13 @@ import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import r2_score, mean_squared_error, classification_report
+from sklearn import svm
+from sklearn.ensemble import RandomForestClassifier
+
+from sklearn.metrics import r2_score, mean_squared_error
 from sklearn.model_selection import train_test_split
 
 
@@ -103,18 +107,92 @@ def get_most_popular_genre(year_row):
     return most_popular_genre
 
 
-genre_sales_history['Most_Popular_Genre'] = genre_sales_history.apply(func=get_most_popular_genre, axis=1)
+def get_last_if_multiple_modes_without_sort(x: pd.Series):
+    if len(x) == 0:
+        return None
+
+    counts = Counter(x)
+    max_count = max(counts.values())
+
+    for elem, count in counts.items():
+        if count == max_count:
+            last_mode = elem
+
+    return last_mode
+
+
+
+def get_most_popular_genre_in_last_n_years(most_pop_genres, n_years):
+    years = most_pop_genres.index
+    min_year = years.values.min()
+    most_pop_genres_in_last_n_years = pd.Series(index=years, dtype=str)
+
+    # TODO: don't take current year into consideration
+    for idx, year in enumerate(years):
+        begin_year = min_year if idx < n_years else year - n_years
+        most_pop_genre_in_last_n_years = get_last_if_multiple_modes_without_sort(most_pop_genres[begin_year: year])
+        most_pop_genres_in_last_n_years[year] = most_pop_genre_in_last_n_years
+
+    return most_pop_genres_in_last_n_years
+
+
+most_popular_genres = genre_sales_history.apply(func=get_most_popular_genre, axis=1)
+genre_sales_history['Most_Pop_Genre'] = most_popular_genres
+
+
+n_years = 3
+most_popular_genres_in_last_n_years = get_most_popular_genre_in_last_n_years(most_popular_genres, n_years)
+genre_sales_history[f'Most_Pop_Genre_Last_{n_years}_Years'] = most_popular_genres_in_last_n_years
+
+genre_sales_history['Most_Pop_Genre'] = most_popular_genres.factorize()[0]
+genre_sales_history[f'Most_Pop_Genre_Last_{n_years}_Years'] = most_popular_genres_in_last_n_years.factorize()[0]
+
+# </editor-fold>
+
+# <editor-fold desc="Train_test splitting">
+clf_attr = genre_sales_history[['NA_Sales', f'Most_Pop_Genre_Last_{n_years}_Years']]
+clf_target = genre_sales_history['Most_Pop_Genre']
+x_train, x_test, y_train, y_test = train_test_split(clf_attr, clf_target, test_size=.3, random_state=0)
+
+# split_year = 2005
+# train = genre_sales_history.loc[:split_year]
+# test = genre_sales_history.loc[split_year:]
+#
+# clf_attr = ['NA_Sales', 'Count', f'Most_Pop_Genre_Last_{n_years}_Years']
+# clf_target = 'Most_Pop_Genre'
+# x_train = train[clf_attr]
+# y_train = train[clf_target]
+# x_test = test[clf_attr]
+# y_test = test[clf_target]
 # </editor-fold>
 
 # <editor-fold desc="Logistic regression">
-clf_attr = genre_sales_history[['NA_Sales', 'Count']]
-clf_target = genre_sales_history['Most_Popular_Genre']
-x_train, x_test, y_train, y_test = train_test_split(clf_attr, clf_target, test_size=.3, random_state=0)
-
-clf = LogisticRegression(random_state=0, max_iter=120).fit(x_train, y_train)
+clf = LogisticRegression(random_state=0, max_iter=500).fit(x_train, y_train)
 pred = clf.predict(x_test)
 results = pd.DataFrame({'True': y_test, 'Predicted': pred})
-print('----- Logistic Regression results -----\n')
+print('\n----- Logistic Regression results -----')
+print(results)
+print(40 * '-')
+score = clf.score(x_test, y_test)
+print(f'Score : {score}')
+# </editor-fold>
+
+# <editor-fold desc="SVM Classification">
+clf = svm.SVC(kernel='linear').fit(x_train, y_train)
+pred = clf.predict(x_test)
+results = pd.DataFrame({'True': y_test, 'Predicted': pred})
+print('\n----- SVM Classification results -----')
+print(results)
+print(40 * '-')
+score = clf.score(x_test, y_test)
+print(f'Score : {score}')
+# </editor-fold>
+
+# <editor-fold desc="RandomForest Classification">
+clf = RandomForestClassifier(random_state=1, bootstrap=True, max_features="sqrt").fit(x_train, y_train)
+pred = clf.predict(x_test)
+results = pd.DataFrame({'True': y_test, 'Predicted': pred})
+print('\n----- RandomForest Classification results -----')
 print(results)
 print(40 * '-')
 score = clf.score(x_test, y_test)
@@ -145,12 +223,12 @@ print("MSE for Linear Regression     : ", mean_squared_error(ytest, ypred))
 # </editor-fold>
 
 
-plot_genre_sales_comparison_for_year(genre_sales_per_year_comparison, year=2014)
-plot_genre_sales_history(genre_sales_history, 'Sports')
-plot_genre_sales_to_count_comparison(genre_sales)
-plot_sales_correlation(df[sales_cols])
-plot_sales_rsquared(genre_sales)
-plot_residual_NA_Sales(genre_sales)
+# plot_genre_sales_comparison_for_year(genre_sales_per_year_comparison, year=2014)
+# plot_genre_sales_history(genre_sales_history, 'Sports')
+# plot_genre_sales_to_count_comparison(genre_sales)
+# plot_sales_correlation(df[sales_cols])
+# plot_sales_rsquared(genre_sales)
+# plot_residual_NA_Sales(genre_sales)
 
 
 
