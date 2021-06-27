@@ -15,8 +15,11 @@ class LogisticRegression:
         return 1. / (1. + np.exp(-x))
 
     def predict(self, x):
+        return self.__predict_probability(x) > self.threshold
+
+    def predict_proba(self, x):
         x_biased = np.insert(x, 0, 1, axis=1)
-        return self.__predict_probability(x_biased) > self.threshold
+        return self.__predict_probability(x_biased)
 
     def fit(self, x, y, verbose=False):
         cost_history = self.__do_gradient_descent(x, y)
@@ -77,32 +80,3 @@ class LogisticRegression:
         plt.ylabel('Cost')
         plt.show()
 
-# Test
-x = np.array([[2.7810836, 2.550537003],
-              [1.465489372, 2.362125076],
-              [3.396561688, 4.400293529],
-              [1.38807019, 1.850220317],
-              [3.06407232, 3.005305973],
-              [7.627531214, 2.759262235],
-              [5.332441248, 2.088626775],
-              [6.922596716, 1.77106367],
-              [8.675418651, -0.242068655],
-              [7.673756466, 3.508563011]])
-y = np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1]).reshape(-1, 1)
-
-x_train = x[:7]
-y_train = y[:7]
-x_test = x[7:]
-y_test = y[7:]
-
-log_reg = LogisticRegression()
-log_reg.fit(x_train, y_train, verbose=True)
-pred = log_reg.predict(x_test)
-
-correct = pred == y_test
-num_of_correct = sum(correct)
-num_of_incorrect = len(y_test) - num_of_correct
-
-print(f'Correct: {num_of_correct}   Incorrect: {num_of_incorrect}')
-result = num_of_correct / len(y_test)
-print(f'Result={result[0]}')
