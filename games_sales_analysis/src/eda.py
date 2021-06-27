@@ -121,49 +121,61 @@ def get_last_if_multiple_modes_without_sort(x: pd.Series):
     return last_mode
 
 
-
-def get_most_popular_genre_in_last_n_years(most_pop_genres, n_years):
+def get_most_popular_genres_in_last_n_years(most_pop_genres, n_years):
     years = most_pop_genres.index
     min_year = years.values.min()
     most_pop_genres_in_last_n_years = pd.Series(index=years, dtype=str)
 
-    # TODO: don't take current year into consideration
     for idx, year in enumerate(years):
         begin_year = min_year if idx < n_years else year - n_years
-        most_pop_genre_in_last_n_years = get_last_if_multiple_modes_without_sort(most_pop_genres[begin_year: year])
-        most_pop_genres_in_last_n_years[year] = most_pop_genre_in_last_n_years
+        most_pop_genres_in_time_span = most_pop_genres[begin_year: year - 1]
+        most_pop_genres_in_last_n_years[year] = get_last_if_multiple_modes_without_sort(most_pop_genres_in_time_span)
 
     return most_pop_genres_in_last_n_years
+
+
+def get_most_popular_genres_n_years_ago(most_pop_genres, n_years_ago):
+    return most_pop_genres.shift(periods=n_years_ago)
 
 
 most_popular_genres = genre_sales_history.apply(func=get_most_popular_genre, axis=1)
 genre_sales_history['Most_Pop_Genre'] = most_popular_genres
 
-
 n_years = 3
-most_popular_genres_in_last_n_years = get_most_popular_genre_in_last_n_years(most_popular_genres, n_years)
+
+most_popular_genres_in_last_n_years = get_most_popular_genres_in_last_n_years(most_popular_genres, n_years)
 genre_sales_history[f'Most_Pop_Genre_Last_{n_years}_Years'] = most_popular_genres_in_last_n_years
 
 genre_sales_history['Most_Pop_Genre'] = most_popular_genres.factorize()[0]
 genre_sales_history[f'Most_Pop_Genre_Last_{n_years}_Years'] = most_popular_genres_in_last_n_years.factorize()[0]
 
+genre_sales_history[f'Most_Pop_Genre_{n_years}_Years_Ago'] = get_most_popular_genres_n_years_ago(most_popular_genres, n_years)
+genre_sales_history[f'Most_Pop_Genre_{n_years - 1}_Years_Ago'] = get_most_popular_genres_n_years_ago(most_popular_genres, n_years - 1)
+genre_sales_history[f'Most_Pop_Genre_{n_years - 2}_Years_Ago'] = get_most_popular_genres_n_years_ago(most_popular_genres, n_years - 2)
+
+cols_to_encode = ['Most_Pop_Genre',
+                  f'Most_Pop_Genre_Last_{n_years}_Years',
+                  f'Most_Pop_Genre_{n_years}_Years_Ago',
+                  f'Most_Pop_Genre_{n_years - 1}_Years_Ago',
+                  f'Most_Pop_Genre_{n_years - 2}_Years_Ago']
+
+genre_sales_history[cols_to_encode] = genre_sales_history[cols_to_encode].transform(func=lambda x: x.factorize()[0])
 # </editor-fold>
 
 # <editor-fold desc="Train_test splitting">
-clf_attr = genre_sales_history[['NA_Sales', f'Most_Pop_Genre_Last_{n_years}_Years']]
+attr_cols = ['NA_Sales', 'Count', f'Most_Pop_Genre_Last_{n_years}_Years']
+
+attr_cols = [ f'Most_Pop_Genre_Last_{n_years}_Years',
+              f'Most_Pop_Genre_{n_years}_Years_Ago',
+              f'Most_Pop_Genre_{n_years - 1}_Years_Ago',
+              f'Most_Pop_Genre_{n_years - 2}_Years_Ago',
+              ]
+attr_cols = ['NA_Sales']
+
+clf_attr = genre_sales_history[attr_cols]
 clf_target = genre_sales_history['Most_Pop_Genre']
 x_train, x_test, y_train, y_test = train_test_split(clf_attr, clf_target, test_size=.3, random_state=0)
 
-# split_year = 2005
-# train = genre_sales_history.loc[:split_year]
-# test = genre_sales_history.loc[split_year:]
-#
-# clf_attr = ['NA_Sales', 'Count', f'Most_Pop_Genre_Last_{n_years}_Years']
-# clf_target = 'Most_Pop_Genre'
-# x_train = train[clf_attr]
-# y_train = train[clf_target]
-# x_test = test[clf_attr]
-# y_test = test[clf_target]
 # </editor-fold>
 
 # <editor-fold desc="Logistic regression">
@@ -223,12 +235,12 @@ print("MSE for Linear Regression     : ", mean_squared_error(ytest, ypred))
 # </editor-fold>
 
 
-# plot_genre_sales_comparison_for_year(genre_sales_per_year_comparison, year=2014)
-# plot_genre_sales_history(genre_sales_history, 'Sports')
-# plot_genre_sales_to_count_comparison(genre_sales)
-# plot_sales_correlation(df[sales_cols])
-# plot_sales_rsquared(genre_sales)
-# plot_residual_NA_Sales(genre_sales)
+plot_genre_sales_comparison_for_year(genre_sales_per_year_comparison, year=2014)
+plot_genre_sales_history(genre_sales_history, 'Sports')
+plot_genre_sales_to_count_comparison(genre_sales)
+plot_sales_correlation(df[sales_cols])
+plot_sales_rsquared(genre_sales)
+plot_residual_NA_Sales(genre_sales)
 
 
 
