@@ -10,22 +10,18 @@ class LogisticRegression:
         self.threshold = threshold
         self.coefficients = []  # column_vector
 
-    @staticmethod
-    def __sigmoid(x):
-        return 1. / (1. + np.exp(-x))
-
-    def predict(self, x):
-        return self.__predict_probability(x) > self.threshold
-
-    def predict_proba(self, x):
-        x_biased = np.insert(x, 0, 1, axis=1)
-        return self.__predict_probability(x_biased)
-
     def fit(self, x, y, verbose=False):
         cost_history = self.__do_gradient_descent(x, y)
 
         if verbose:
             self.__show_details(cost_history)
+
+    def predict(self, x):
+        return self.predict_proba(x) > self.threshold
+
+    def predict_proba(self, x):
+        x_biased = np.insert(x, 0, 1, axis=1)
+        return self.__predict_probability(x_biased)
 
     def __do_gradient_descent(self, x, y):
         x_biased = np.insert(x, 0, 1, axis=1)
@@ -38,6 +34,7 @@ class LogisticRegression:
 
         return cost_history
 
+    # ----- Taken from Andrew Ng's Intro to Machine Learning course on Coursera -----
     # Logistic Regression cannot be optimized by Sum of squared errors (SSE)
     # because sigmoid function introduces non-linearity (cost function is not convex)
     # Function used for calculating cost has the following form: {note that h(x) = predict(x)}
@@ -69,14 +66,16 @@ class LogisticRegression:
 
     def __predict_probability(self, x):
         linear_predict = x @ self.coefficients
-        return LogisticRegression.__sigmoid(linear_predict)
+        return self.__sigmoid(linear_predict)
 
-    def __show_details(self, sse_history):
+    def __sigmoid(self, x):
+        return 1. / (1. + np.exp(-x))
+
+    def __show_details(self, cost_history):
         for epoch in range(self.epochs):
-            print(f'Epoch: {epoch: 3d}   SSE: {sse_history[epoch]}')
-        plt.plot(range(self.epochs), sse_history)
+            print(f'Epoch: {epoch: 3d}   Cost: {cost_history[epoch]}')
+        plt.plot(range(self.epochs), cost_history)
         plt.title('Cost function over epochs')
         plt.xlabel(f'Epochs({self.epochs})')
         plt.ylabel('Cost')
         plt.show()
-

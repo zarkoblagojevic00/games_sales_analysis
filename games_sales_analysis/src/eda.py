@@ -6,14 +6,16 @@ import os
 import matplotlib.pyplot as plt
 import seaborn as sns
 
-
 from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegression
 from sklearn import svm
 from sklearn.ensemble import RandomForestClassifier
 
-from sklearn.metrics import r2_score, mean_squared_error
+from sklearn.metrics import r2_score, mean_squared_error, classification_report
 from sklearn.model_selection import train_test_split
+
+from logistic_regression import LogisticRegression as MyLogReg
+from one_vs_rest import OneVsRestClassifier
 
 
 # <editor-fold desc="Visualization functions">
@@ -73,6 +75,7 @@ def plot_residual_NA_Sales(genre_sales):
     plt.ylabel('Residuals')
     plt.show()
 
+
 # </editor-fold>
 
 # <editor-fold desc="Data IO and df creation"
@@ -95,7 +98,6 @@ genre_sales = pd.pivot_table(data=df,
                              dropna=False,
                              fill_value=0)
 genre_sales.rename(columns={'Rank': 'Count'}, inplace=True)
-
 
 genre_sales_per_year_comparison = genre_sales.unstack(0)
 genre_sales_history = genre_sales.unstack(-1)
@@ -146,87 +148,90 @@ n_years = 3
 most_popular_genres_in_last_n_years = get_most_popular_genres_in_last_n_years(most_popular_genres, n_years)
 genre_sales_history[f'Most_Pop_Genre_Last_{n_years}_Years'] = most_popular_genres_in_last_n_years
 
-genre_sales_history['Most_Pop_Genre'] = most_popular_genres.factorize()[0]
-genre_sales_history[f'Most_Pop_Genre_Last_{n_years}_Years'] = most_popular_genres_in_last_n_years.factorize()[0]
+genre_sales_history[f'Most_Pop_Genre_{n_years}_Years_Ago'] = get_most_popular_genres_n_years_ago(most_popular_genres,
+                                                                                                 n_years)
+genre_sales_history[f'Most_Pop_Genre_{n_years - 1}_Years_Ago'] = get_most_popular_genres_n_years_ago(
+    most_popular_genres, n_years - 1)
+genre_sales_history[f'Most_Pop_Genre_{n_years - 2}_Years_Ago'] = get_most_popular_genres_n_years_ago(
+    most_popular_genres, n_years - 2)
 
-genre_sales_history[f'Most_Pop_Genre_{n_years}_Years_Ago'] = get_most_popular_genres_n_years_ago(most_popular_genres, n_years)
-genre_sales_history[f'Most_Pop_Genre_{n_years - 1}_Years_Ago'] = get_most_popular_genres_n_years_ago(most_popular_genres, n_years - 1)
-genre_sales_history[f'Most_Pop_Genre_{n_years - 2}_Years_Ago'] = get_most_popular_genres_n_years_ago(most_popular_genres, n_years - 2)
-
-cols_to_encode = ['Most_Pop_Genre',
-                  f'Most_Pop_Genre_Last_{n_years}_Years',
+cols_to_encode = [f'Most_Pop_Genre_Last_{n_years}_Years',
                   f'Most_Pop_Genre_{n_years}_Years_Ago',
                   f'Most_Pop_Genre_{n_years - 1}_Years_Ago',
                   f'Most_Pop_Genre_{n_years - 2}_Years_Ago']
 
 genre_sales_history[cols_to_encode] = genre_sales_history[cols_to_encode].transform(func=lambda x: x.factorize()[0])
+
 # </editor-fold>
 
 # <editor-fold desc="Train_test splitting">
 attr_cols = ['NA_Sales', 'Count', f'Most_Pop_Genre_Last_{n_years}_Years']
 
-attr_cols = [ f'Most_Pop_Genre_Last_{n_years}_Years',
-              f'Most_Pop_Genre_{n_years}_Years_Ago',
-              f'Most_Pop_Genre_{n_years - 1}_Years_Ago',
-              f'Most_Pop_Genre_{n_years - 2}_Years_Ago',
-              ]
-attr_cols = ['NA_Sales']
+# attr_cols.extend([#f'Most_Pop_Genre_Last_{n_years}_Years',
+#                   f'Most_Pop_Genre_{n_years}_Years_Ago',
+#                   f'Most_Pop_Genre_{n_years - 1}_Years_Ago',
+#                   f'Most_Pop_Genre_{n_years - 2}_Years_Ago'])
+# attr_cols = ['NA_Sales']
 
 clf_attr = genre_sales_history[attr_cols]
+clf_attr_norm = (clf_attr - clf_attr.mean()) / clf_attr.std()
 clf_target = genre_sales_history['Most_Pop_Genre']
-x_train, x_test, y_train, y_test = train_test_split(clf_attr, clf_target, test_size=.3, random_state=0)
+x_train, x_test, y_train, y_test = train_test_split(clf_attr_norm, clf_target, test_size=.3, random_state=0)
+# my classifiers expect numpy arrays
+my_x_train, my_y_train, my_x_test, my_y_test = x_train.to_numpy(), y_train.values, x_test.to_numpy(), y_test.values
 
 # </editor-fold>
 
+
+def show_results(y_true, y_pred, title):
+    result = pd.DataFrame({'True': y_true, 'Predicted': y_pred})
+    print(f'\n{title}')
+    print(result)
+    print(40 * '-')
+    accuracy = sum(y_true == y_pred) / len(y_true)
+    print(f'Accuracy: {accuracy}')
+    print('Classification report:\n', classification_report(y_true, y_pred, zero_division=0))
+
+
 # <editor-fold desc="Logistic regression">
-clf = LogisticRegression(random_state=0, max_iter=500).fit(x_train, y_train)
+clf = LogisticRegression(multi_class='ovr').fit(x_train, y_train)
 pred = clf.predict(x_test)
-results = pd.DataFrame({'True': y_test, 'Predicted': pred})
-print('\n----- Logistic Regression results -----')
-print(results)
-print(40 * '-')
-score = clf.score(x_test, y_test)
-print(f'Score : {score}')
+show_results(y_test, pred, title='----- Logistic Regression results -----')
+
+clf = OneVsRestClassifier(MyLogReg())
+clf.fit(my_x_train, my_y_train)
+pred = clf.predict(my_x_test)
+show_results(my_y_test, pred, title='----- My Logistic Regression results -----')
 # </editor-fold>
 
 # <editor-fold desc="SVM Classification">
 clf = svm.SVC(kernel='linear').fit(x_train, y_train)
 pred = clf.predict(x_test)
-results = pd.DataFrame({'True': y_test, 'Predicted': pred})
-print('\n----- SVM Classification results -----')
-print(results)
-print(40 * '-')
-score = clf.score(x_test, y_test)
-print(f'Score : {score}')
+show_results(y_test, pred, '----- SVM Classification results -----')
 # </editor-fold>
 
 # <editor-fold desc="RandomForest Classification">
 clf = RandomForestClassifier(random_state=1, bootstrap=True, max_features="sqrt").fit(x_train, y_train)
 pred = clf.predict(x_test)
-results = pd.DataFrame({'True': y_test, 'Predicted': pred})
-print('\n----- RandomForest Classification results -----')
-print(results)
-print(40 * '-')
-score = clf.score(x_test, y_test)
-print(f'Score : {score}')
+show_results(y_test, pred, '----- RandomForest Classification results -----')
 # </editor-fold>
 
 # <editor-fold desc="Linear regression">
-normalized_genre_sales = (genre_sales-genre_sales.mean())/genre_sales.std()
+normalized_genre_sales = (genre_sales - genre_sales.mean()) / genre_sales.std()
 attributes = normalized_genre_sales[['NA_Sales', 'Count']]
 target = normalized_genre_sales['Global_Sales']
 
-xtrain, xtest, ytrain, ytest=train_test_split(attributes, target, test_size=.3, random_state=1)
+xtrain, xtest, ytrain, ytest = train_test_split(attributes, target, test_size=.3, random_state=1)
 lr_model = LinearRegression()
 lr_model.fit(xtrain, ytrain)
-ypred=lr_model.predict(xtest)
+ypred = lr_model.predict(xtest)
 result_df = pd.DataFrame({'Test': ytest, 'Predict': ypred})
 
 r2_value = r2_score(ytest, ypred)
 n = len(xtest)
 p = xtest.shape[1]
 
-adjusted_r2_score = 1 - (((1-r2_value)*(n-1)) / (n-p-1))
+adjusted_r2_score = 1 - (((1 - r2_value) * (n - 1)) / (n - p - 1))
 
 print("r2_score for Linear Reg model : ", r2_value)
 print("adjusted_r2_score Value       : ", adjusted_r2_score)
@@ -241,9 +246,3 @@ plot_genre_sales_to_count_comparison(genre_sales)
 plot_sales_correlation(df[sales_cols])
 plot_sales_rsquared(genre_sales)
 plot_residual_NA_Sales(genre_sales)
-
-
-
-
-
-
