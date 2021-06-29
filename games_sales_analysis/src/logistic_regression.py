@@ -34,7 +34,7 @@ class LogisticRegression:
 
         return cost_history
 
-    # ----- Taken from Andrew Ng's Intro to Machine Learning course on Coursera -----
+    # ----- Inspired by Andrew Ng's Intro to Machine Learning course on Coursera -----
     # Logistic Regression cannot be optimized by Sum of squared errors (SSE)
     # because sigmoid function introduces non-linearity (cost function is not convex)
     # Function used for calculating cost has the following form: {note that h(x) = predict(x)}
