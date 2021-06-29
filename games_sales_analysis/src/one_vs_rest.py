@@ -1,6 +1,8 @@
 import numpy as np
 import copy
 
+from probability_matrix import ProbabilityMatrixPredictor
+
 
 class OneVsRestClassifier:
 
@@ -18,24 +20,8 @@ class OneVsRestClassifier:
             self.classifiers.append(model_wrapper)
 
     def predict(self, x):
-        self.__create_probability_matrix(x)
-        return self.__predict_classes()
-
-    def __create_probability_matrix(self, x):
-        n_rows = x.shape[0]
-        n_cols = len(self.classifiers)
-        self.probability_matrix = np.empty(shape=(n_rows, n_cols))
-        for idx, classifier in enumerate(self.classifiers):
-            self.probability_matrix[:, idx] = classifier.predict(x)[:, 0]
-
-    def __predict_classes(self):
-        # using np.ma because apply_along_axis from np trims strings to same length
-        return np.ma.apply_along_axis(self.__predict_class, 1, self.probability_matrix)
-
-    def __predict_class(self, row):
-        max_probability_idx = row.argmax()
-        predicted_class = self.classifiers[max_probability_idx].predicted_class
-        return predicted_class
+        predictor = ProbabilityMatrixPredictor(self.classifiers)
+        return predictor.predict(x)
 
     class _OneVsRestModelWrapper:
         def __init__(self, model):
