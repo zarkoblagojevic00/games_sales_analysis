@@ -10,12 +10,14 @@ from sklearn.linear_model import LinearRegression
 from sklearn.linear_model import LogisticRegression
 from sklearn import svm
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.naive_bayes import GaussianNB
 
 from sklearn.metrics import r2_score, mean_squared_error, classification_report
 from sklearn.model_selection import train_test_split
 
 from logistic_regression import LogisticRegression as MyLogReg
 from one_vs_rest import OneVsRestClassifier
+from naive_bayes import NaiveBayes
 
 
 # <editor-fold desc="Visualization functions">
@@ -174,9 +176,9 @@ attr_cols = ['NA_Sales', 'Count', f'Most_Pop_Genre_Last_{n_years}_Years']
 # attr_cols = ['NA_Sales']
 
 clf_attr = genre_sales_history[attr_cols]
-clf_attr_norm = (clf_attr - clf_attr.mean()) / clf_attr.std()
+clf_attr = (clf_attr - clf_attr.mean()) / clf_attr.std()
 clf_target = genre_sales_history['Most_Pop_Genre']
-x_train, x_test, y_train, y_test = train_test_split(clf_attr_norm, clf_target, test_size=.3, random_state=0)
+x_train, x_test, y_train, y_test = train_test_split(clf_attr, clf_target, test_size=.3, random_state=0)
 # my classifiers expect numpy arrays
 my_x_train, my_y_train, my_x_test, my_y_test = x_train.to_numpy(), y_train.values, x_test.to_numpy(), y_test.values
 
@@ -192,6 +194,18 @@ def show_results(y_true, y_pred, title):
     print(f'Accuracy: {accuracy}')
     print('Classification report:\n', classification_report(y_true, y_pred, zero_division=0))
 
+
+# <editor-fold desc="Gaussian Naive Bayes">
+clf = GaussianNB()
+clf.fit(my_x_train, my_y_train)
+pred = clf.predict(my_x_test)
+show_results(my_y_test, pred, '----- Naive Bayes Classification results -----')
+
+clf = NaiveBayes()
+clf.fit(my_x_train, my_y_train)
+pred = clf.predict(my_x_test)
+show_results(my_y_test, pred, '----- My Naive Bayes Classification results -----')
+# </editor-fold>
 
 # <editor-fold desc="Logistic regression">
 clf = LogisticRegression(multi_class='ovr').fit(x_train, y_train)
@@ -215,6 +229,8 @@ clf = RandomForestClassifier(random_state=1, bootstrap=True, max_features="sqrt"
 pred = clf.predict(x_test)
 show_results(y_test, pred, '----- RandomForest Classification results -----')
 # </editor-fold>
+
+
 
 # <editor-fold desc="Linear regression">
 normalized_genre_sales = (genre_sales - genre_sales.mean()) / genre_sales.std()
