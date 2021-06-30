@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import seaborn as sns
 
+
 class GamesSalesVisualizer:
 
     def __init__(self, df, genre_sales):
