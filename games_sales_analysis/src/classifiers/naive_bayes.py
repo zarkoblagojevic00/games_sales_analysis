@@ -34,8 +34,8 @@ class NaiveBayes:
         total_class_samples = len(class_samples)
         class_probability = total_class_samples / total_samples
         predictor = NaiveBayes._NaiveBayesClassPredictor(target_class,
-                                                           class_samples,
-                                                           class_probability)
+                                                         class_samples,
+                                                         class_probability)
         return predictor
 
     class _NaiveBayesClassPredictor:
@@ -49,8 +49,6 @@ class NaiveBayes:
                 self.col_stds = np.std(class_samples, axis=0)
             else:
                 self.col_stds = [1] * len(class_samples[0])
-
-            print()
 
         # P(class|sample) ~ P(sample|class) * P(class) (omitting division with P(sample))
         # P(class|sample) ~ П(datum[i]|class) * P(class) (hence the naive part)
