@@ -20,7 +20,7 @@ class ClassificationTester:
         self.x_train, self.y_train, self.x_test, self.y_test = self.__train_test_split(x, y, norm)
         self.classifiers = {
             'My Logistic Regression': OneVsRestClassifier(MyLogReg(epochs=250)),
-            'SK Logistic Regression': LogisticRegression(),
+            'SK Logistic Regression': LogisticRegression(multi_class='ovr'),
             'My Gaussian Naive Bayes': NaiveBayes(),
             'SK Gaussian Naive Bayes': GaussianNB(),
             'SVM': svm.SVC(kernel='linear'),
