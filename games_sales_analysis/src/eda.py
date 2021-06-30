@@ -15,9 +15,9 @@ from sklearn.naive_bayes import GaussianNB
 from sklearn.metrics import r2_score, mean_squared_error, classification_report
 from sklearn.model_selection import train_test_split
 
-from logistic_regression import LogisticRegression as MyLogReg
-from one_vs_rest import OneVsRestClassifier
-from naive_bayes import NaiveBayes
+from classifiers.logistic_regression import LogisticRegression as MyLogReg
+from classifiers.one_vs_rest import OneVsRestClassifier
+from classifiers.naive_bayes import NaiveBayes
 
 
 # <editor-fold desc="Visualization functions">

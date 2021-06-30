@@ -1,6 +1,6 @@
 import numpy as np
 
-from probability_matrix import ProbabilityMatrixPredictor
+from classifiers.probability_matrix import ProbabilityMatrixPredictor
 
 
 class NaiveBayes:

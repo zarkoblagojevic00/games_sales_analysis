@@ -1,7 +1,7 @@
 import numpy as np
 import copy
 
-from probability_matrix import ProbabilityMatrixPredictor
+from classifiers.probability_matrix import ProbabilityMatrixPredictor
 
 
 class OneVsRestClassifier:
