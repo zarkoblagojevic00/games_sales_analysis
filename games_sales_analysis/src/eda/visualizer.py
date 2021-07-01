@@ -15,7 +15,7 @@ class GamesSalesVisualizer:
         self.plot_genre_sales_to_count_comparison()
         self.plot_sales_correlation()
         self.plot_sales_rsquared()
-        self.plot_residual_NA_Sales()
+        self.plot_residual_Count_to_Global_Sales()
 
     def plot_genre_sales_to_count_comparison(self):
         marketplace_count = len(self.sales_cols_names)
@@ -57,17 +57,19 @@ class GamesSalesVisualizer:
     def plot_sales_correlation(self):
         correlation = self.df[self.sales_cols_names].corr()
         sns.heatmap(correlation, annot=True)
+        plt.title('Correlation of sales')
         plt.show()
 
     def plot_sales_rsquared(self):
         correlation = self.genre_sales.corr()
         r_squared = correlation ** 2
         sns.heatmap(r_squared, annot=True)
+        plt.title('R squared values of sales')
         plt.show()
 
-    def plot_residual_NA_Sales(self):
-        sns.residplot(data=self.genre_sales, x='NA_Sales', y='Global_Sales')
-        plt.title('Residual plot of NA_Sales vs Global_sales')
+    def plot_residual_Count_to_Global_Sales(self):
+        sns.residplot(data=self.genre_sales, x='Count', y='Global_Sales')
+        plt.title('Residual plot of Count vs Global_sales')
         plt.ylabel('Residuals')
         plt.show()
 

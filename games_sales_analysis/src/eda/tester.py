@@ -23,8 +23,8 @@ class ClassificationTester:
             'SK Logistic Regression': LogisticRegression(multi_class='ovr'),
             'My Gaussian Naive Bayes': NaiveBayes(),
             'SK Gaussian Naive Bayes': GaussianNB(),
-            #'SVM': svm.SVC(kernel='linear'),
-            #'Random Forest': RandomForestClassifier(random_state=1, bootstrap=True)
+            'SVM': svm.SVC(kernel='linear'),
+            'Random Forest': RandomForestClassifier(random_state=1, bootstrap=True)
         }
 
         # my classifiers expect numpy arrays
